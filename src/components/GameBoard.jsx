@@ -9,11 +9,11 @@ const SELECTOR_TITLES = {
 }
 
 export default function GameBoard({ game }) {
-  const { teams, currentTeam, pending, rollDice, resolveSelection, nextTurn, setScreen } = game
+  const { teams, currentTeam, pending, goesRemaining, gameOver, rollDice, resolveSelection, nextTurn, setScreen } = game
   const [rolling, setRolling] = useState(false)
 
   const handleRoll = () => {
-    if (pending || rolling) return
+    if (pending || rolling || gameOver) return
     setRolling(true)
     setTimeout(() => {
       setRolling(false)
@@ -45,15 +45,23 @@ export default function GameBoard({ game }) {
       </div>
 
       <p className="text-white/50 uppercase tracking-widest text-xs mb-1">Current Team</p>
-      <h1 className="font-display text-3xl sm:text-4xl text-neon-green text-center mb-8 drop-shadow-[0_0_10px_#a3e635]">
+      <h1 className="font-display text-3xl sm:text-4xl text-neon-green text-center mb-2 drop-shadow-[0_0_10px_#a3e635]">
         {currentTeam?.name}
       </h1>
+
+      {goesRemaining !== null && !gameOver ? (
+        <p className="text-neon-pink text-sm mb-6 text-center">
+          🎁 All gifts unwrapped! {goesRemaining} more go{goesRemaining === 1 ? '' : 'es'} left...
+        </p>
+      ) : (
+        <div className="mb-6" />
+      )}
 
       <Dice
         value={pending?.rollValue}
         rolling={rolling}
         onRoll={handleRoll}
-        disabled={!!pending || rolling}
+        disabled={!!pending || rolling || gameOver}
       />
 
       {showPromptCard && (
@@ -77,7 +85,7 @@ export default function GameBoard({ game }) {
           onClick={nextTurn}
           className="w-full max-w-sm mt-6 py-4 rounded-2xl bg-neon-green text-ink font-display text-2xl shadow-neonGreen active:scale-95"
         >
-          {pending.chainRoll ? 'Roll Again 🎲' : 'Next Turn →'}
+          Next Turn →
         </button>
       )}
     </div>

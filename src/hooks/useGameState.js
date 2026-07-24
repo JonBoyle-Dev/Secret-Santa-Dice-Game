@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { loadState, saveState, clearState } from '../utils/storage'
 import { DEFAULT_TEAM_NAMES } from '../data/defaultTeams'
-import { JOKER_CHANCE, GRINCH_CHANCE } from '../data/diceTable'
+import { JOKER_CHANCE, GRINCH_CHANCE, FINAL_GOES } from '../data/diceTable'
 
 function uid() {
   return Math.random().toString(36).slice(2, 10)
@@ -20,12 +20,16 @@ export function useGameState() {
   const [turnLog, setTurnLog] = useState(() => loadState('turnLog', []))
   const [screen, setScreen] = useState(() => loadState('screen', 'setup'))
   const [pending, setPending] = useState(null) // { rollValue, actionKey, prompt, needsSelection, event }
+  const [goesRemaining, setGoesRemaining] = useState(() => loadState('goesRemaining', null))
+  const [gameOver, setGameOver] = useState(() => loadState('gameOver', false))
 
   useEffect(() => saveState('teams', teams), [teams])
   useEffect(() => saveState('gifts', gifts), [gifts])
   useEffect(() => saveState('currentTeamIndex', currentTeamIndex), [currentTeamIndex])
   useEffect(() => saveState('turnLog', turnLog), [turnLog])
   useEffect(() => saveState('screen', screen), [screen])
+  useEffect(() => saveState('goesRemaining', goesRemaining), [goesRemaining])
+  useEffect(() => saveState('gameOver', gameOver), [gameOver])
 
   const addTeam = useCallback((name) => {
     setTeams((prev) => [...prev, { id: uid(), name, giftId: null }])
@@ -44,10 +48,14 @@ export function useGameState() {
     clearState('currentTeamIndex')
     clearState('turnLog')
     clearState('screen')
+    clearState('goesRemaining')
+    clearState('gameOver')
     setGifts([])
     setCurrentTeamIndex(0)
     setTurnLog([])
     setPending(null)
+    setGoesRemaining(null)
+    setGameOver(false)
     setScreen('setup')
   }, [])
 
@@ -64,6 +72,8 @@ export function useGameState() {
     setCurrentTeamIndex(0)
     setTurnLog([])
     setPending(null)
+    setGoesRemaining(null)
+    setGameOver(false)
     setScreen('board')
   }, [teams])
 
@@ -83,69 +93,108 @@ export function useGameState() {
     setPending(null)
   }, [teams.length])
 
-  const resolveRoll = useCallback((value, team) => {
-    if (!team) return
+  const swapGifts = useCallback(
+    (teamAId, teamBId) => {
+      const giftA = giftForTeam(teamAId)
+      const giftB = giftForTeam(teamBId)
+      if (!giftA || !giftB) return
+      setGifts((prev) =>
+        prev.map((g) => {
+          if (g.id === giftA.id) return { ...g, ownerId: teamBId, hasMoved: true }
+          if (g.id === giftB.id) return { ...g, ownerId: teamAId, hasMoved: true }
+          return g
+        })
+      )
+    },
+    [giftForTeam]
+  )
 
-    switch (value) {
-      case 1: {
-        const gift = giftForTeam(team.id)
-        const isOwnUntouchedGift = gift && gift.ownerId === gift.originalOwnerId && !gift.hasMoved
-        if (isOwnUntouchedGift) {
-          setPending({
-            rollValue: 1,
-            prompt: "Can't unwrap your own gift until it's been passed on — take a sip instead!",
-          })
-          logEvent({ type: 'unwrap-blocked', teamId: team.id })
-        } else if (gift && !gift.unwrapped) {
-          setGifts((prev) => prev.map((g) => (g.id === gift.id ? { ...g, unwrapped: true } : g)))
-          setPending({ rollValue: 1, prompt: "Unwrap the gift you're currently holding!" })
-          logEvent({ type: 'unwrap', teamId: team.id })
-        } else {
-          setPending({ rollValue: 1, prompt: 'Already unwrapped — take a bonus sip!' })
-          logEvent({ type: 'bonus-sip', teamId: team.id })
+  const resolveRoll = useCallback(
+    (value, team) => {
+      if (!team) return
+      const teamIndex = teams.findIndex((t) => t.id === team.id)
+
+      switch (value) {
+        case 1: {
+          const gift = giftForTeam(team.id)
+          const isOwnUntouchedGift = gift && gift.ownerId === gift.originalOwnerId && !gift.hasMoved
+          if (isOwnUntouchedGift) {
+            setPending({
+              rollValue: 1,
+              prompt: "Can't unwrap your own gift until it's been passed on — take a sip instead!",
+            })
+            logEvent({ type: 'unwrap-blocked', teamId: team.id })
+          } else if (gift && !gift.unwrapped) {
+            const updatedGifts = gifts.map((g) => (g.id === gift.id ? { ...g, unwrapped: true } : g))
+            setGifts(updatedGifts)
+            if (goesRemaining === null && updatedGifts.every((g) => g.unwrapped)) {
+              setGoesRemaining(FINAL_GOES)
+            }
+            setPending({ rollValue: 1, prompt: "Unwrap the gift you're currently holding!" })
+            logEvent({ type: 'unwrap', teamId: team.id })
+          } else {
+            setPending({ rollValue: 1, prompt: 'Already unwrapped — take a bonus sip!' })
+            logEvent({ type: 'bonus-sip', teamId: team.id })
+          }
+          break
         }
-        break
+        case 2:
+          setPending({
+            rollValue: 2,
+            prompt: 'Pick a team to steal from — they drink!',
+            needsSelection: 'steal',
+          })
+          break
+        case 3:
+          setPending({
+            rollValue: 3,
+            prompt: 'Trade your gift with any team.',
+            needsSelection: 'swap',
+          })
+          break
+        case 4: {
+          const leftTeam = teams[(teamIndex - 1 + teams.length) % teams.length]
+          swapGifts(team.id, leftTeam.id)
+          logEvent({ type: 'pass-left', teamId: team.id, targetTeamId: leftTeam.id })
+          logEvent({ type: 'drink', teamId: team.id })
+          setPending({
+            rollValue: 4,
+            prompt: `Pass your gift to ${leftTeam.name}, then take a sip!`,
+          })
+          break
+        }
+        case 5: {
+          const rightTeam = teams[(teamIndex + 1) % teams.length]
+          swapGifts(team.id, rightTeam.id)
+          logEvent({ type: 'pass-right', teamId: team.id, targetTeamId: rightTeam.id })
+          setPending({
+            rollValue: 5,
+            prompt: `Pass your gift to ${rightTeam.name}, then pick a team to drink!`,
+            needsSelection: 'give',
+          })
+          break
+        }
+        case 6:
+          setPending({ rollValue: 6, prompt: 'Everyone drinks! 🍻' })
+          logEvent({ type: 'group-sip', teamId: team.id })
+          break
+        default:
+          break
       }
-      case 2:
-        setPending({
-          rollValue: 2,
-          prompt: 'Pick a team to steal from — they drink!',
-          needsSelection: 'steal',
-        })
-        break
-      case 3:
-        setPending({
-          rollValue: 3,
-          prompt: 'Trade your gift with any team.',
-          needsSelection: 'swap',
-        })
-        break
-      case 4:
-        setPending({ rollValue: 4, prompt: 'Take a sip!' })
-        logEvent({ type: 'drink', teamId: team.id })
-        break
-      case 5:
-        setPending({
-          rollValue: 5,
-          prompt: 'Pick a team to drink!',
-          needsSelection: 'give',
-        })
-        break
-      case 6:
-        setPending({
-          rollValue: 6,
-          prompt: 'Take a sip, then roll again!',
-          chainRoll: true,
-        })
-        logEvent({ type: 'wild', teamId: team.id })
-        break
-      default:
-        break
-    }
-  }, [giftForTeam, logEvent])
+    },
+    [teams, gifts, giftForTeam, logEvent, swapGifts, goesRemaining]
+  )
 
   const rollDice = useCallback(() => {
-    if (!currentTeam) return
+    if (!currentTeam || gameOver) return
+
+    if (goesRemaining !== null) {
+      const next = goesRemaining - 1
+      setGoesRemaining(next)
+      if (next <= 0) {
+        setGameOver(true)
+      }
+    }
 
     const jokerRoll = Math.random()
     if (jokerRoll < JOKER_CHANCE) {
@@ -167,7 +216,7 @@ export function useGameState() {
 
     const value = 1 + Math.floor(Math.random() * 6)
     resolveRoll(value, currentTeam)
-  }, [currentTeam, gifts, logEvent, resolveRoll])
+  }, [currentTeam, gameOver, goesRemaining, gifts, logEvent, resolveRoll])
 
   const resolveSelection = useCallback(
     (targetTeamId) => {
@@ -199,16 +248,7 @@ export function useGameState() {
       }
 
       if (pending.needsSelection === 'swap') {
-        const myGift = giftForTeam(team.id)
-        const targetGift = giftForTeam(targetTeamId)
-        if (!myGift || !targetGift) return
-        setGifts((prev) =>
-          prev.map((g) => {
-            if (g.id === myGift.id) return { ...g, ownerId: targetTeamId, hasMoved: true }
-            if (g.id === targetGift.id) return { ...g, ownerId: team.id, hasMoved: true }
-            return g
-          })
-        )
+        swapGifts(team.id, targetTeamId)
         logEvent({ type: 'swap', teamId: team.id, targetTeamId })
         setPending((prev) => ({ ...prev, resolved: true }))
       }
@@ -218,7 +258,7 @@ export function useGameState() {
         setPending((prev) => ({ ...prev, resolved: true }))
       }
     },
-    [currentTeam, pending, giftForTeam, logEvent]
+    [currentTeam, pending, giftForTeam, logEvent, swapGifts]
   )
 
   const dismissEvent = useCallback(() => {
@@ -226,13 +266,8 @@ export function useGameState() {
   }, [advanceTurn])
 
   const nextTurn = useCallback(() => {
-    if (pending?.chainRoll) {
-      setPending(null)
-      // same team rolls again — index unchanged
-      return
-    }
     advanceTurn()
-  }, [pending, advanceTurn])
+  }, [advanceTurn])
 
   return {
     teams,
@@ -242,6 +277,8 @@ export function useGameState() {
     turnLog,
     screen,
     pending,
+    goesRemaining,
+    gameOver,
     setScreen,
     addTeam,
     removeTeam,

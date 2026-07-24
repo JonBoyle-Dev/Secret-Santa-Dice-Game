@@ -3,7 +3,14 @@ export default function EndSummary({ teams, gifts, turnLog, setScreen, resetToSe
 
   const count = (type) => turnLog.filter((e) => e.type === type).length
   const totalDrinks =
-    count('drink') + count('bonus-sip') + count('wild') + count('steal') + count('give') + count('grinch')
+    count('drink') +
+    count('bonus-sip') +
+    count('unwrap-blocked') +
+    count('steal') +
+    count('give') +
+    count('grinch') +
+    count('group-sip') +
+    count('joker')
 
   const jokerHits = turnLog.filter((e) => e.type === 'joker').map((e) => teamName(e.teamId))
   const grinchHits = turnLog.filter((e) => e.type === 'grinch' && e.teamId).map((e) => teamName(e.teamId))
