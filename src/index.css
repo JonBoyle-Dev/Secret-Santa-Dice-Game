@@ -1,0 +1,31 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-ink text-white font-body;
+    background-image:
+      radial-gradient(circle at 15% 20%, rgba(163, 230, 53, 0.06), transparent 40%),
+      radial-gradient(circle at 85% 80%, rgba(239, 35, 60, 0.08), transparent 45%);
+    min-height: 100vh;
+  }
+}
+
+@layer utilities {
+  .text-outline {
+    -webkit-text-stroke: 2px black;
+  }
+  .grunge-overlay {
+    position: relative;
+  }
+  .grunge-overlay::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image: radial-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+    background-size: 3px 3px;
+    mix-blend-mode: overlay;
+  }
+}
