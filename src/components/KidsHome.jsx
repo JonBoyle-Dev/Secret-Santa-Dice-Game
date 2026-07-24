@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-export default function Home({ teams, addTeam, removeTeam, renameTeam, startGame, setScreen, onChangeMode }) {
+export default function KidsHome({ teams, addTeam, removeTeam, renameTeam, startGame, setScreen, onChangeMode }) {
   const [newName, setNewName] = useState('')
   const [editingId, setEditingId] = useState(null)
   const [editValue, setEditValue] = useState('')
@@ -25,15 +25,15 @@ export default function Home({ teams, addTeam, removeTeam, renameTeam, startGame
 
   return (
     <div className="min-h-screen flex flex-col items-center px-4 py-10 sm:py-16">
-      <div className="text-6xl mb-2">🎅</div>
+      <div className="text-6xl mb-2">🎄</div>
       <h1 className="font-display text-4xl sm:text-6xl text-center text-neon-green drop-shadow-[0_0_10px_#a3e635] leading-tight">
         SECRET SANTA
       </h1>
       <h2 className="font-display text-3xl sm:text-5xl text-center text-neon-red drop-shadow-[0_0_10px_#ef233c] mb-2">
-        DICE GAME
+        KIDS EDITION
       </h2>
       <p className="text-white/60 text-center mb-4 max-w-xs">
-        Xmas in July · Roll, steal, swap and drink your way through the gift pile.
+        Xmas in July · Roll, steal, swap and pass gifts — draw a Challenge Card instead of drinking!
       </p>
 
       <div className="flex gap-2 mb-6">
@@ -56,7 +56,7 @@ export default function Home({ teams, addTeam, removeTeam, renameTeam, startGame
       </div>
 
       <div className="w-full max-w-sm bg-white/5 border border-neon-green/30 rounded-2xl p-4 mb-6 grunge-overlay">
-        <h3 className="font-display text-xl text-neon-green mb-3">Teams</h3>
+        <h3 className="font-display text-xl text-neon-green mb-3">Players</h3>
         <div className="space-y-2 mb-4">
           {teams.map((team) => (
             <div
@@ -92,7 +92,7 @@ export default function Home({ teams, addTeam, removeTeam, renameTeam, startGame
             </div>
           ))}
           {teams.length === 0 && (
-            <p className="text-white/40 text-sm text-center py-4">No teams yet — add one below.</p>
+            <p className="text-white/40 text-sm text-center py-4">No players yet — add one below.</p>
           )}
         </div>
 
@@ -101,7 +101,7 @@ export default function Home({ teams, addTeam, removeTeam, renameTeam, startGame
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
-            placeholder="Team name e.g. Jax & Jon"
+            placeholder="Player name e.g. Alex"
             className="flex-1 bg-black/40 border border-white/20 rounded-lg px-3 py-2 text-white
               placeholder-white/30 outline-none focus:border-neon-green"
           />
@@ -125,7 +125,7 @@ export default function Home({ teams, addTeam, removeTeam, renameTeam, startGame
         Start Game 🎲
       </button>
       {teams.length < 2 && (
-        <p className="text-white/40 text-xs mt-2">Add at least 2 teams to start.</p>
+        <p className="text-white/40 text-xs mt-2">Add at least 2 players to start.</p>
       )}
     </div>
   )
