@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { loadState, saveState, clearState } from '../utils/storage'
 import { DEFAULT_TEAM_NAMES } from '../data/defaultTeams'
-import { JOKER_CHANCE, GRINCH_CHANCE, STEAL_LIMIT } from '../data/diceTable'
+import { JOKER_CHANCE, GRINCH_CHANCE } from '../data/diceTable'
 
 function uid() {
   return Math.random().toString(36).slice(2, 10)
@@ -57,8 +57,8 @@ export function useGameState() {
       originalOwnerId: t.id,
       ownerId: t.id,
       stealCount: 0,
-      frozen: false,
       unwrapped: false,
+      hasMoved: false,
     }))
     setGifts(newGifts)
     setCurrentTeamIndex(0)
@@ -89,7 +89,14 @@ export function useGameState() {
     switch (value) {
       case 1: {
         const gift = giftForTeam(team.id)
-        if (gift && !gift.unwrapped) {
+        const isOwnUntouchedGift = gift && gift.ownerId === gift.originalOwnerId && !gift.hasMoved
+        if (isOwnUntouchedGift) {
+          setPending({
+            rollValue: 1,
+            prompt: "Can't unwrap your own gift until it's been passed on — take a sip instead!",
+          })
+          logEvent({ type: 'unwrap-blocked', teamId: team.id })
+        } else if (gift && !gift.unwrapped) {
           setGifts((prev) => prev.map((g) => (g.id === gift.id ? { ...g, unwrapped: true } : g)))
           setPending({ rollValue: 1, prompt: "Unwrap the gift you're currently holding!" })
           logEvent({ type: 'unwrap', teamId: team.id })
@@ -170,20 +177,19 @@ export function useGameState() {
       if (pending.needsSelection === 'steal') {
         const targetGift = giftForTeam(targetTeamId)
         const myGift = giftForTeam(team.id)
-        if (!targetGift || targetGift.frozen) return
+        if (!targetGift) return
         setGifts((prev) =>
           prev.map((g) => {
             if (g.id === targetGift.id) {
-              const stealCount = g.stealCount + 1
               return {
                 ...g,
                 ownerId: team.id,
-                stealCount,
-                frozen: stealCount >= STEAL_LIMIT,
+                stealCount: g.stealCount + 1,
+                hasMoved: true,
               }
             }
             if (myGift && g.id === myGift.id) {
-              return { ...g, ownerId: targetTeamId }
+              return { ...g, ownerId: targetTeamId, hasMoved: true }
             }
             return g
           })
@@ -198,8 +204,8 @@ export function useGameState() {
         if (!myGift || !targetGift) return
         setGifts((prev) =>
           prev.map((g) => {
-            if (g.id === myGift.id) return { ...g, ownerId: targetTeamId }
-            if (g.id === targetGift.id) return { ...g, ownerId: team.id }
+            if (g.id === myGift.id) return { ...g, ownerId: targetTeamId, hasMoved: true }
+            if (g.id === targetGift.id) return { ...g, ownerId: team.id, hasMoved: true }
             return g
           })
         )

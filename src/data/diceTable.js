@@ -9,4 +9,3 @@ export const DICE_ACTIONS = {
 
 export const JOKER_CHANCE = 0.07
 export const GRINCH_CHANCE = 0.07
-export const STEAL_LIMIT = 3

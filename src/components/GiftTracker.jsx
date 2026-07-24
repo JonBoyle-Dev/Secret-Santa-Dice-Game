@@ -30,9 +30,6 @@ export default function GiftTracker({ teams, gifts, setScreen }) {
               <span className="px-2 py-1 rounded-full bg-white/10 text-white/50">
                 {gift.stealCount} steal{gift.stealCount === 1 ? '' : 's'}
               </span>
-              {gift.frozen && (
-                <span className="px-2 py-1 rounded-full bg-neon-red/20 text-neon-red">Frozen ❄️</span>
-              )}
             </div>
           </div>
         ))}

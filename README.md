@@ -1,6 +1,6 @@
 # Secret Santa Dice Game
 
-Pass-the-phone drinking game for the Xmas in July party (25 July, 33 Roxie). Roll the dice each turn to unwrap, steal, swap, drink, give, or go wild — with a chance of Santa's Joker (everyone drinks) or the Grinch (whoever's still holding their own gift drinks).
+Pass-the-phone drinking game for the Xmas in July party (25 July). Roll the dice each turn to unwrap, steal, swap, drink, give, or go wild — with a chance of Santa's Joker (everyone drinks) or the Grinch (whoever's still holding their own gift drinks).
 
 ## Local dev
 ```bash

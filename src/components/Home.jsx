@@ -33,7 +33,7 @@ export default function Home({ teams, addTeam, removeTeam, renameTeam, startGame
         DICE GAME
       </h2>
       <p className="text-white/60 text-center mb-8 max-w-xs">
-        Xmas in July · 33 Roxie · Roll, steal, swap and drink your way through the gift pile.
+        Xmas in July · Roll, steal, swap and drink your way through the gift pile.
       </p>
 
       <div className="w-full max-w-sm bg-white/5 border border-neon-green/30 rounded-2xl p-4 mb-6 grunge-overlay">

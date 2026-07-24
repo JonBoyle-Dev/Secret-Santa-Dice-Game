@@ -9,7 +9,7 @@ const SELECTOR_TITLES = {
 }
 
 export default function GameBoard({ game }) {
-  const { teams, gifts, currentTeam, pending, rollDice, resolveSelection, nextTurn, setScreen } = game
+  const { teams, currentTeam, pending, rollDice, resolveSelection, nextTurn, setScreen } = game
   const [rolling, setRolling] = useState(false)
 
   const handleRoll = () => {
@@ -20,8 +20,6 @@ export default function GameBoard({ game }) {
       rollDice()
     }, 550)
   }
-
-  const frozenGiftTeamIds = gifts.filter((g) => g.frozen).map((g) => g.ownerId)
 
   const showPromptCard = pending && !pending.event
   const showSelector = showPromptCard && pending.needsSelection && !pending.resolved
@@ -69,7 +67,6 @@ export default function GameBoard({ game }) {
           title={SELECTOR_TITLES[pending.needsSelection]}
           teams={teams}
           excludeTeamId={currentTeam.id}
-          disabledTeamIds={pending.needsSelection === 'steal' ? frozenGiftTeamIds : []}
           onSelect={resolveSelection}
         />
       )}

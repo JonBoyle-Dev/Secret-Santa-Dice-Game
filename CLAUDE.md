@@ -1,6 +1,6 @@
 # Secret Santa Dice Game
 
-Party drinking game for Xmas in July (25 July, 33 Roxie). Single-device, pass-the-phone style — no backend, all state in localStorage.
+Party drinking game for Xmas in July (25 July). Single-device, pass-the-phone style — no backend, all state in localStorage.
 
 ## Structure
 ```
@@ -34,8 +34,8 @@ Vite + React 18 + Tailwind CSS. No backend, no build-time secrets.
 ## Dice table (rolled 1-6)
 | Roll | Action | Effect |
 |---|---|---|
-| 1 | Unwrap | Unwraps the gift currently held; already-unwrapped gives a bonus sip |
-| 2 | Steal | Pick a team, take their gift (mutual swap of ownership), that gift's steal count +1; frozen at 3 steals |
+| 1 | Unwrap | Unwraps the gift currently held; blocked (bonus sip) if it's still your own untouched original gift; already-unwrapped gives a bonus sip |
+| 2 | Steal | Pick a team, take their gift (mutual swap of ownership), that gift's steal count +1 (no limit) |
 | 3 | Swap | Trade gifts with any team (no steal-count effect) |
 | 4 | Drink | No gift action |
 | 5 | Give | Pick a team to drink |
@@ -45,7 +45,8 @@ Before resolving the roll, each turn independently checks `JOKER_CHANCE` (~7%, e
 
 ## Key mechanics
 - `Gift.originalOwnerId` vs `Gift.ownerId` — steals/swaps only ever change `ownerId`; `originalOwnerId` is what the Grinch check and end-of-round summary key off.
-- Steal targets with `frozen: true` (3+ steals) are disabled in the team selector, but frozen gifts can still be swapped.
+- `Gift.hasMoved` flips to `true` permanently the first time a gift is stolen or swapped away. A team can't unwrap a gift where `ownerId === originalOwnerId && !hasMoved` (i.e. their own gift that's never left their hands) — once it's been passed on, even the original owner can unwrap it if it comes back to them.
+- `Gift.stealCount` is tracked purely for the end-of-round fun stats — there's no freeze/steal limit.
 - `pending.chainRoll` (Wild) keeps `currentTeamIndex` unchanged so the same team rolls again.
 - Game state persists under `ssdg_*` localStorage keys (see `src/utils/storage.js`); "New Round" clears everything except the team roster.
 
